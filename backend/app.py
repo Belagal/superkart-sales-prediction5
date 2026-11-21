@@ -50,13 +50,27 @@ def predict_sales():
 def predict_sales_batch():
     # Get the uploaded CSV file from the request
     file = request.files['file']
-
-    # Read the file into a DataFrame
     input_data = pd.read_csv(file)
 
-    # Make predictions for the batch data
-    predictions = model.predict(input_data).tolist()
+    # Map engineered columns to raw columns expected by the saved model
+    if 'Product_Id' not in input_data.columns and 'Product_Id_char' in input_data.columns:
+        input_data['Product_Id'] = input_data['Product_Id_char'] + "6114"
+    if 'Product_Type' not in input_data.columns and 'Product_Type_Category' in input_data.columns:
+        input_data['Product_Type'] = input_data['Product_Type_Category'].apply(
+            lambda x: "Frozen Foods" if x == "Non Perishables" else "Dairy"
+        )
+    if 'Store_Id' not in input_data.columns:
+        input_data['Store_Id'] = "OUT004"
+    if 'Store_Establishment_Year' not in input_data.columns and 'Store_Age_Years' in input_data.columns:
+        input_data['Store_Establishment_Year'] = 2025 - input_data['Store_Age_Years'].astype(int)
 
+    # Drop target column if present in the uploaded CSV
+    input_data = input_data.drop(columns=['Product_Store_Sales_Total'], errors='ignore')
+
+    # Generate predictions
+    predictions = model.predict(input_data).tolist()
+    return jsonify({'predictions': predictions})
+    
     # Create an output dictionary mapping row index to predicted sales
     output_dict = {str(i): round(pred, 2) for i, pred in enumerate(predictions)}
 
