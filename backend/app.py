@@ -53,18 +53,28 @@ def predict_sales_batch():
     input_data = pd.read_csv(file)
 
     # Map engineered columns to raw columns expected by the saved model
-    if 'Product_Id' not in input_data.columns and 'Product_Id_char' in input_data.columns:
-        input_data['Product_Id'] = input_data['Product_Id_char'] + "6114"
-    if 'Product_Type' not in input_data.columns and 'Product_Type_Category' in input_data.columns:
-        input_data['Product_Type'] = input_data['Product_Type_Category'].apply(
-            lambda x: "Frozen Foods" if x == "Non Perishables" else "Dairy"
-        )
+    # Ensure all raw columns expected by the saved model exist
+    if 'Product_Id' not in input_data.columns:
+        prefix = input_data['Product_Id_char'] if 'Product_Id_char' in input_data.columns else "FD"
+        input_data['Product_Id'] = prefix.astype(str) + "6114"
+
+    if 'Product_Type' not in input_data.columns:
+        if 'Product_Type_Category' in input_data.columns:
+            input_data['Product_Type'] = input_data['Product_Type_Category'].apply(
+                lambda x: "Frozen Foods" if x == "Non Perishables" else "Dairy"
+            )
+        else:
+            input_data['Product_Type'] = "Frozen Foods"
+
     if 'Store_Id' not in input_data.columns:
         input_data['Store_Id'] = "OUT004"
-    if 'Store_Establishment_Year' not in input_data.columns and 'Store_Age_Years' in input_data.columns:
-        input_data['Store_Establishment_Year'] = 2025 - input_data['Store_Age_Years'].astype(int)
 
-    # Drop target column if present in the uploaded CSV
+    if 'Store_Establishment_Year' not in input_data.columns:
+        if 'Store_Age_Years' in input_data.columns:
+            input_data['Store_Establishment_Year'] = 2025 - input_data['Store_Age_Years'].astype(int)
+        else:
+            input_data['Store_Establishment_Year'] = 2009
+
     input_data = input_data.drop(columns=['Product_Store_Sales_Total'], errors='ignore')
 
     # Generate predictions
