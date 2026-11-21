@@ -52,7 +52,6 @@ def predict_sales_batch():
     file = request.files['file']
     input_data = pd.read_csv(file)
 
-    # Map engineered columns to raw columns expected by the saved model
     # Ensure all raw columns expected by the saved model exist
     if 'Product_Id' not in input_data.columns:
         prefix = input_data['Product_Id_char'] if 'Product_Id_char' in input_data.columns else "FD"
@@ -79,8 +78,7 @@ def predict_sales_batch():
 
     # Generate predictions
     predictions = model.predict(input_data).tolist()
-    return jsonify({'predictions': predictions})
-    
+
     # Create an output dictionary mapping row index to predicted sales
     output_dict = {str(i): round(pred, 2) for i, pred in enumerate(predictions)}
 
